@@ -3,7 +3,6 @@ package com.serenitydojo.playwright.todomvc.pageobjects;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import org.apache.commons.lang3.StringUtils;
-import org.assertj.core.api.AbstractBigDecimalAssert;
 
 import java.util.List;
 
@@ -16,10 +15,10 @@ public class TodoMvcAppPage {
 
     public TodoMvcAppPage(Page page) {
         this.page = page;
-        baseUrl = (StringUtils.isEmpty(System.getenv("APP_HOST_URL"))) ? "http://localhost:7002" : System.getenv("APP_HOST_URL");
-
-        todoItems = page.getByTestId("todo-item-label");
-        todoField = page.getByTestId("text-input");
+        baseUrl = (StringUtils.isEmpty(System.getenv("APP_HOST_URL"))) ? "https://demo.playwright.dev/todomvc/#/" : System.getenv("APP_HOST_URL");
+        //baseUrl = (StringUtils.isEmpty(System.getenv("APP_HOST_URL"))) ? "http://localhost:7002" : System.getenv("APP_HOST_URL");
+        todoItems = page.getByTestId("todo-item");
+        todoField = page.locator(".new-todo");
     }
 
     public void open() {
@@ -48,7 +47,7 @@ public class TodoMvcAppPage {
 
     public void deleteItem(String itemName) {
         Locator itemRow = itemRow(itemName);
-        Locator deleteButton = itemRow.getByTestId("todo-item-button");
+        Locator deleteButton = itemRow.getByLabel("Delete");
         itemRow.hover();
         deleteButton.click();
     }
@@ -59,7 +58,7 @@ public class TodoMvcAppPage {
     }
 
     public void completeItem(String itemName) {
-        itemRow(itemName).getByTestId("todo-item-toggle").click();
+        itemRow(itemName).getByLabel("Toggle Todo").click();
     }
 
     public String todoCount() {
@@ -67,14 +66,16 @@ public class TodoMvcAppPage {
     }
 
     public void clearCompletedItems() {
-        page.getByTestId("footer").getByText("Clear completed").click();
+        page.getByText("Clear completed").click();
     }
 
     public String currentFilter() {
-        return page.getByTestId("footer-navigation").locator(".selected").textContent();
+        return page.locator(".footer").locator(".selected").textContent();
     }
 
     public void filterItemsBy(String filter) {
-        page.getByTestId("footer-navigation").getByText(filter).click();
+        page.locator(".footer .filters")
+                .getByText(filter, new Locator.GetByTextOptions().setExact(true))
+                .click();
     }
 }

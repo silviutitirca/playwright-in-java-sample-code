@@ -38,7 +38,7 @@ class CompletingTodoItemsTest {
     void shouldUpdateNumberOfItemsLeftCount() {
         todoMvcApp.addItems("Feed the cat", "Walk the dog", "Buy some milk");
         todoMvcApp.completeItem("Feed the cat");
-        Assertions.assertThat(todoMvcApp.todoCount()).isEqualTo("2 items left!");
+        Assertions.assertThat(todoMvcApp.todoCount()).isEqualTo("2 items left");
     }
 
     @DisplayName("Should be able to clear completed items")
