@@ -58,7 +58,7 @@ public class TodoMvcAppPage {
     }
 
     public void completeItem(String itemName) {
-        itemRow(itemName).getByLabel("Toggle Todo").click();
+        itemRow(itemName).getByLabel("Toggle Todo").first().click();
     }
 
     public String todoCount() {
@@ -77,5 +77,49 @@ public class TodoMvcAppPage {
         page.locator(".footer .filters")
                 .getByText(filter, new Locator.GetByTextOptions().setExact(true))
                 .click();
+    }
+
+    public boolean isFooterVisible() {
+        return page.locator(".footer").isVisible();
+    }
+
+    public boolean isClearCompletedButtonVisible() {
+        return page.locator(".footer").getByText("Clear completed").isVisible();
+    }
+
+    public void editItem(String oldName, String newName) {
+        Locator item = itemRow(oldName);
+        item.locator("label").dblclick();
+        item.locator(".edit").fill(newName);
+        item.locator(".edit").press("Enter");
+    }
+
+    public void cancelEditItem(String itemName) {
+        Locator item = itemRow(itemName);
+        item.locator("label").dblclick();
+        item.locator(".edit").press("Escape");
+    }
+
+    public void refreshPage() {
+        page.reload();
+        // Wait for the application root to be attached and visible before proceeding
+        try {
+            page.waitForSelector(".todoapp", new Page.WaitForSelectorOptions().setTimeout(3000));
+        } catch (Exception ignored) {
+            // ignore timeouts; caller can handle assertions
+        }
+    }
+
+    public boolean isItemCompleted(String itemName) {
+        String classAttribute = itemRow(itemName).getAttribute("class");
+        return classAttribute != null && classAttribute.contains("completed");
+    }
+
+    public void toggleAllItems() {
+        page.locator(".toggle-all").click();
+    }
+
+    public boolean toggleAllCheckboxExists() {
+        return page.locator(".toggle-all").isVisible();
     }
 }
