@@ -2,107 +2,191 @@ package com.serenitydojo.playwright.todomvc.pageobjects;
 
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
+import com.microsoft.playwright.options.AriaRole;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 
+/**
+ * Page Object for the TodoMVC application.
+ * This class provides methods to interact with the TodoMVC application using Playwright.
+ */
 public class TodoMvcAppPage {
 
     private final Page page;
     private final String baseUrl;
-    private final Locator todoItems;
+
+    // Locators defined as fields for better maintainability and reuse
     private final Locator todoField;
+    private final Locator todoItems;
+    private final Locator todoCount;
+    private final Locator footer;
+    private final Locator toggleAll;
+    private final Locator clearCompletedButton;
 
     public TodoMvcAppPage(Page page) {
         this.page = page;
-        baseUrl = (StringUtils.isEmpty(System.getenv("APP_HOST_URL"))) ? "https://demo.playwright.dev/todomvc/#/" : System.getenv("APP_HOST_URL");
-        //baseUrl = (StringUtils.isEmpty(System.getenv("APP_HOST_URL"))) ? "http://localhost:7002" : System.getenv("APP_HOST_URL");
-        todoItems = page.getByTestId("todo-item");
-        todoField = page.locator(".new-todo");
+        this.baseUrl = (StringUtils.isEmpty(System.getenv("APP_HOST_URL")))
+                ? "https://demo.playwright.dev/todomvc/#/"
+                : System.getenv("APP_HOST_URL");
+
+        // Initialize locators
+        this.todoField = page.locator(".new-todo");
+        this.todoItems = page.getByTestId("todo-item");
+        this.todoCount = page.locator(".todo-count");
+        this.footer = page.locator(".footer");
+        this.toggleAll = page.locator(".toggle-all");
+        this.clearCompletedButton = page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Clear completed"));
     }
 
-    public void open() {
+    /**
+     * Opens the TodoMVC application.
+     */
+    public TodoMvcAppPage open() {
         page.navigate(baseUrl);
+        return this;
     }
 
+    /**
+     * @return a list of all todo item texts currently displayed.
+     */
     public List<String> todoItemsDisplayed() {
         return todoItems.allTextContents();
     }
 
-
+    /**
+     * @return the locator for the main input field.
+     */
     public Locator todoField() {
         return todoField;
     }
 
+    /**
+     * Adds a new todo item to the list.
+     *
+     * @param itemText the text of the item to add.
+     */
     public void addItem(String itemText) {
         todoField.fill(itemText);
         todoField.press("Enter");
     }
 
-    public void addItems(String... todoItems) {
-        for(String todoItem : todoItems){
-            addItem(todoItem);
+    /**
+     * Adds multiple todo items to the list.
+     *
+     * @param items the items to add.
+     */
+    public void addItems(String... items) {
+        for (String item : items) {
+            addItem(item);
         }
     }
 
+    /**
+     * Deletes a todo item by its text.
+     *
+     * @param itemName the text of the item to delete.
+     */
     public void deleteItem(String itemName) {
-        Locator itemRow = itemRow(itemName);
-        Locator deleteButton = itemRow.getByLabel("Delete");
+        Locator itemRow = itemRow(itemName).first();
         itemRow.hover();
-        deleteButton.click();
+        itemRow.getByRole(AriaRole.BUTTON, new Locator.GetByRoleOptions().setName("Delete")).click();
     }
 
+    /**
+     * Returns the locator for a specific todo item row.
+     * Uses exact text match to avoid strict mode violations when item names overlap (e.g., "Task-1" and "Task-10").
+     * @param itemName the text of the item.
+     */
     public Locator itemRow(String itemName) {
-        return page.getByTestId("todo-item")
-                .filter(new Locator.FilterOptions().setHasText(itemName));
+        return todoItems.filter(new Locator.FilterOptions().setHas(page.getByText(itemName, new Page.GetByTextOptions().setExact(true))));
     }
 
+    /**
+     * Completes a todo item by clicking its checkbox.
+     *
+     * @param itemName the text of the item to complete.
+     */
     public void completeItem(String itemName) {
-        itemRow(itemName).getByLabel("Toggle Todo").first().click();
+        itemRow(itemName).getByRole(AriaRole.CHECKBOX, new Locator.GetByRoleOptions().setName("Toggle Todo")).first().click();
     }
 
+    /**
+     * @return the text content of the item count display (e.g., "1 item left").
+     */
     public String todoCount() {
-        return page.locator(".todo-count").textContent();
+        return todoCount.textContent();
     }
 
+    /**
+     * Clears all completed items from the list.
+     */
     public void clearCompletedItems() {
-        page.getByText("Clear completed").click();
+        clearCompletedButton.click();
     }
 
+    /**
+     * @return the text of the currently selected filter.
+     */
     public String currentFilter() {
-        return page.locator(".footer").locator(".selected").textContent();
+        return footer.locator(".selected").textContent();
     }
 
-    public void filterItemsBy(String filter) {
-        page.locator(".footer .filters")
-                .getByText(filter, new Locator.GetByTextOptions().setExact(true))
+    /**
+     * Filters the todo items by clicking one of the filter links in the footer.
+     *
+     * @param filterName the name of the filter (e.g., "All", "Active", "Completed").
+     */
+    public void filterItemsBy(String filterName) {
+        footer.locator(".filters")
+                .getByRole(AriaRole.LINK, new Locator.GetByRoleOptions().setName(filterName).setExact(true))
                 .click();
     }
 
+    /**
+     * @return true if the footer is visible.
+     */
     public boolean isFooterVisible() {
-        return page.locator(".footer").isVisible();
+        return footer.isVisible();
     }
 
+    /**
+     * @return true if the "Clear completed" button is visible.
+     */
     public boolean isClearCompletedButtonVisible() {
-        return page.locator(".footer").getByText("Clear completed").isVisible();
+        return clearCompletedButton.isVisible();
     }
 
+    /**
+     * Edits an existing todo item.
+     *
+     * @param oldName the current text of the item.
+     * @param newName the new text for the item.
+     */
     public void editItem(String oldName, String newName) {
         Locator item = itemRow(oldName);
         item.locator("label").dblclick();
-        item.locator(".edit").fill(newName);
-        item.locator(".edit").press("Enter");
+        Locator editField = item.locator(".edit");
+        editField.fill(newName);
+        editField.press("Enter");
     }
 
+    /**
+     * Cancels the editing of an item.
+     *
+     * @param itemName the text of the item being edited.
+     */
     public void cancelEditItem(String itemName) {
         Locator item = itemRow(itemName);
         item.locator("label").dblclick();
         item.locator(".edit").press("Escape");
     }
 
+    /**
+     * Reloads the page and waits for the application to be ready.
+     */
     public void refreshPage() {
         page.reload();
-        // Wait for the application root to be attached and visible before proceeding
         try {
             page.waitForSelector(".todoapp", new Page.WaitForSelectorOptions().setTimeout(3000));
         } catch (Exception ignored) {
@@ -110,16 +194,27 @@ public class TodoMvcAppPage {
         }
     }
 
+    /**
+     * Checks if a specific item is marked as completed.
+     * @param itemName the text of the item.
+     * @return true if the item has the "completed" class.
+     */
     public boolean isItemCompleted(String itemName) {
         String classAttribute = itemRow(itemName).getAttribute("class");
         return classAttribute != null && classAttribute.contains("completed");
     }
 
+    /**
+     * Toggles all items as completed or active.
+     */
     public void toggleAllItems() {
-        page.locator(".toggle-all").click();
+        toggleAll.click();
     }
 
+    /**
+     * @return true if the "Toggle All" checkbox is visible.
+     */
     public boolean toggleAllCheckboxExists() {
-        return page.locator(".toggle-all").isVisible();
+        return toggleAll.isVisible();
     }
 }
